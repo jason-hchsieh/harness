@@ -1,0 +1,6 @@
+{
+  "name": "harness-toolkit",
+  "description": "Create, audit, and improve Claude Agent Skills. One omni skill with create|audit|improve modes, rubric-driven, severity-tagged.",
+  "version": "0.1.0",
+  "author": { "name": "harness" }
+}
