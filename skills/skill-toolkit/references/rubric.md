@@ -38,7 +38,7 @@ For the precise per-field spec (allowed values, defaults, examples) see `frontma
 
 - If the skill body references `$ARGUMENTS`, this field SHOULD be present for autocomplete.
 - Form: a brief human-readable hint, typically in angle brackets or square brackets (e.g. `"<issue-number>"` or `"create <name> | audit <path>"`).
-- **Confidence**: MEDIUM.
+- **Confidence**: HIGH for the schema check (field present/absent), MEDIUM for the "is it actually informative" presence heuristic.
 - **Severity if violated**: LOW (WARN only).
 
 ### R05 — `disable-model-invocation`
@@ -188,5 +188,5 @@ See `anti-patterns.md` for bad-vs-good examples.
 |----------|----------------------------------------------------------------------|
 | CRITICAL | R01 violation, R02 hard-limit violation, R14 >850 lines              |
 | HIGH     | R02 soft-limit, R03, R09, R11, R12, R13, R14 600–850, R15, R16, R19, R18 unambiguous |
-| MEDIUM   | R04, R05, R06, R14 500–600, R17                                      |
-| LOW      | R07, R08, R10, R18 advisory, R20                                     |
+| MEDIUM   | R05, R06, R14 500–600, R17                                           |
+| LOW      | R04, R07, R08, R10, R18 advisory, R20                                |
