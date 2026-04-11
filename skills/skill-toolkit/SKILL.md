@@ -1,6 +1,6 @@
 ---
 name: skill-toolkit
-description: Use when the user wants to CREATE, AUDIT, or IMPROVE a Claude Agent Skill. Create scaffolds a new SKILL.md under .claude/skills/ after a short intent interview. Audit runs the R01-R20 rubric and emits a read-only severity-tagged findings report covering all 13 frontmatter fields. Improve applies minimal-diff fixes from an audit report. Pass create|audit|improve as the first argument.
+description: Use when the user wants to CREATE, AUDIT, or IMPROVE a Claude Agent Skill. Create scaffolds a new SKILL.md. Audit runs the R01-R20 rubric and emits severity-tagged findings. Improve applies fixes from an audit report. Mode is the first argument.
 argument-hint: "create <name> | audit <path> | improve <path> [--report=<file>]"
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 disable-model-invocation: false
@@ -15,6 +15,15 @@ A thin router that dispatches to one of three modes for managing Claude Agent Sk
 **In scope**: creating new SKILL.md files, auditing existing skills against a 20-rule rubric, applying audit findings as fixes.
 
 **Out of scope**: building plugins end-to-end (this only handles skills), installing/distributing skills (use `/reload-plugins` yourself), managing subagents or slash commands (different primitives).
+
+## Tools (why `Bash` is in `allowed-tools`)
+
+The delegated mode files need `Bash` for two narrow purposes — nothing else:
+
+1. `date -u +"%Y-%m-%dT%H:%M:%SZ"` — UTC timestamp at the top of every audit report (see `references/report-template.md`).
+2. `basename`/`dirname` — deriving a skill's directory name for the R01 check ("`name` must equal containing directory name") in `mode-audit.md`.
+
+The router itself does not invoke `Bash`. It is declared at the router level so modes loaded via `Read references/mode-*.md` inherit the permission. No other shell usage is permitted.
 
 ## Always load first
 
