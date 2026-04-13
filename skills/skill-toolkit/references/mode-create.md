@@ -1,90 +1,38 @@
 # Mode: create
 
-Scaffold a new Claude Agent Skill from scratch. Walk the user through intent capture, write a valid SKILL.md, and self-check it against the rubric before handing off.
+Scaffold a new Claude Agent Skill from scratch.
 
-**Before running this mode**, make sure you have already loaded `rubric.md` and `frontmatter-schema.md` (the SKILL.md router does this).
+## Goal
 
-## Input contract
+Produce a valid, rubric-passing SKILL.md under `.claude/skills/<name>/` that is ready for `/reload-plugins`.
 
-- `$ARGUMENTS` after the mode token is optional. If a name is provided (e.g. `create hello-world`), use it as a starting point. Otherwise ask the user.
-- Default scaffold location: `.claude/skills/<name>/` in the current working directory.
-- If `.claude/skills/<name>/` already exists, STOP and ask the user whether to overwrite, pick a new name, or switch to `improve` mode.
+## Constraints
 
-## Phase 1 — Capture intent (≤5 questions)
+- Scaffold to `.claude/skills/<name>/` in the current working directory by default. Ask before writing elsewhere.
+- If `.claude/skills/<name>/` already exists, STOP — ask the user to overwrite, rename, or switch to `improve`.
+- Frontmatter must use only the 13 fields documented in `frontmatter-schema.md`.
+- Body must be ≤500 lines. Move long reference material into `references/` files.
+- Every path mentioned in the body must resolve (R16). If you reference a file, create it.
+- Description must be ≤250 visible chars, start with "Use when…", and front-load trigger words.
+- Use `assets/skeleton.md` as the starting template.
 
-Ask the user these questions, concisely, in order. Skip a question if the user already answered it in the initial prompt. Do not ask more than 5 questions total — you are gathering enough signal, not writing a requirements doc.
+## Workflow
 
-1. **Purpose**: What should this skill do? One sentence.
-2. **Trigger**: What would the user say out loud when they want this skill to run? Give one or two example phrasings.
-3. **Inputs/outputs**: What does the skill consume (file path, free text, nothing) and what does it produce (files written, a report, an answer)?
-4. **Tools**: Which tools will it need? (Read, Write, Edit, Glob, Grep, Bash, WebFetch…) If `Bash`, what commands?
-5. **Side effects**: Does it write files, delete things, push to remote, call external APIs? (If yes → `disable-model-invocation: true`.)
+This mode is genuinely sequential — each step depends on the previous:
 
-Record the answers as a short intent block you will reference in later phases.
+1. **Capture intent** — ask the user up to 5 questions (purpose, trigger phrases, inputs/outputs, tool needs, side effects). Skip questions the user already answered.
+2. **Check for collisions** — search existing skills for naming conflicts and description overlap (R19).
+3. **Scaffold + write** — fill in `skeleton.md` with the user's intent. Write the SKILL.md.
+4. **Self-check** — run R01–R20 from `rubric.md` against what you just wrote. Fix CRITICAL/HIGH in place.
+5. **Handoff** — report the path, suggest audit, remind `/reload-plugins`.
 
-## Phase 2 — Research prior art
+## Gotchas
 
-Use `Glob` and `Grep` to look for collisions or patterns to reuse:
+Claude tends to fail on these during skill creation:
 
-- `Glob` `.claude/skills/*/SKILL.md` and `~/.claude/skills/*/SKILL.md` to list existing skills.
-- `Grep` the word the user chose for `name` across those SKILL.md files to detect naming collisions.
-- If collisions exist, ask the user to pick a different name.
-- Optionally `Grep` descriptions for overlap with the user's proposed trigger phrases (to avoid attention competition per R19).
-
-## Phase 3 — Scaffold the directory
-
-1. Create the directory: `.claude/skills/<name>/`
-2. Copy `assets/skeleton.md` into `.claude/skills/<name>/SKILL.md` using `Read` + `Write` (do not shell out).
-3. Fill in the frontmatter from the Phase 1 intent block:
-   - `name: <name>` (MUST match directory)
-   - `description`: write a "Use when…" clause that front-loads the trigger phrases from Q2. Keep it ≤250 visible chars if possible, ≤1024 hard.
-   - `allowed-tools`: the narrow list from Q4. If `Bash`, add a one-line justification comment in the body.
-   - `disable-model-invocation`: `true` if Q5 indicated side effects, else `false` (always set explicitly).
-   - `argument-hint`: if the body will reference `$ARGUMENTS`.
-   - Any advanced fields (`context`, `agent`, `paths`, `hooks`) only if the user explicitly needs them.
-
-## Phase 4 — Write the body
-
-Draft a body that uses progressive disclosure. Target ≤300 lines; hard cap 500.
-
-Recommended skeleton (from `assets/skeleton.md`):
-
-1. **One-line purpose** (mirrors description).
-2. **Scope & non-goals** (what it does NOT do).
-3. **When to use this skill** (concrete phrasings).
-4. **How it works** — the actual instructions. Keep each step testable.
-5. **Inputs/outputs contract**.
-6. **Anti-patterns** (what not to do).
-7. **References** — links to files under `references/` for long reference material.
-
-If any single section grows past ~50 lines, move it to a file under `skills/<name>/references/` and link to it from the body. Do not inline long lists, long tables, or long examples.
-
-## Phase 5 — Self-check against the rubric
-
-Run the R01–R20 checks from `rubric.md` against the SKILL.md you just wrote. Fix anything CRITICAL or HIGH in place before finishing. Specifically:
-
-- **R01**: name matches directory name.
-- **R02**: description ≤1024 chars (count them).
-- **R03**: description contains "Use when…".
-- **R09**: allowed-tools is narrow; Bash justified.
-- **R14**: body ≤500 lines.
-- **R16**: every `references/*` / `scripts/*` / `assets/*` path you mentioned actually exists (create stubs if you referenced a file you haven't written yet).
-- **R18**: the description's promise matches what the body actually does.
-
-If you discover a gap (e.g. you referenced `references/foo.md` but haven't written it), create the stub file now — do not leave dangling references.
-
-## Phase 6 — Handoff
-
-Report to the user:
-
-1. The path that was written: `.claude/skills/<name>/SKILL.md`
-2. A one-line summary of what the skill does.
-3. A reminder to run `/reload-plugins` so Claude Code picks up the new skill.
-4. A suggestion to run `skill-toolkit audit .claude/skills/<name>/SKILL.md` as an independent sanity check.
-
-## Things you must not do in create mode
-
-- Do not scaffold a skill outside `.claude/skills/<name>/` without asking the user first.
-- Do not invent frontmatter fields beyond the 13 in `frontmatter-schema.md`.
-- Do not write a body longer than 500 lines. Progressive disclosure is not optional.
-- Do not copy and paste Anthropic's `skill-creator` verbatim — use its structure as a guide but write the user's skill for their specific need.
+- **Descriptions that are too long.** You'll write a description that perfectly captures the skill — at 400 chars. Count it before committing. Target ≤250.
+- **Forgetting `disable-model-invocation`.** Always set it explicitly. Default to `false`. Set `true` only if the skill has destructive side effects (delete, deploy, push).
+- **Railroading the generated skill.** The skill you create should follow the same "goals + constraints" pattern, not prescriptive step-by-step phases. Don't reproduce the anti-pattern.
+- **Overly broad `allowed-tools`.** Start narrow (Read, Glob, Grep). Add Write/Edit only if the skill writes files. Add Bash only with a justification in the body.
+- **Dangling references.** If you mention `references/foo.md` in the body, create the file before finishing. R16 violations are embarrassing.
+- **Copying Anthropic's skill-creator verbatim.** Use its structure as a guide, but write the user's skill for their specific need.

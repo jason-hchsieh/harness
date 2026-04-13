@@ -157,14 +157,17 @@ I will read the SKILL.md and then I'll check the frontmatter fields. After that 
 **Good**:
 
 ```markdown
-## How it works
+## Goal
 
-1. Read the target SKILL.md.
-2. Check every frontmatter field against `frontmatter-schema.md`.
-3. Emit findings using `report-template.md`.
+Produce a severity-tagged findings report for the target SKILL.md by checking all frontmatter fields against `frontmatter-schema.md`.
+
+## Constraints
+
+- Read-only — MUST NOT Write or Edit.
+- Emit findings using `report-template.md`.
 ```
 
-Imperative, step-numbered, no "I will". The model is the one following the instructions — writing "I will" is confusing and adds noise.
+No first-person, no "I will". Give goals and constraints — don't railroad Claude with prescriptive step-by-step instructions.
 
 ---
 
@@ -263,3 +266,47 @@ paths:
 ```
 
 Specific, targeted, fires only when the user is actually working on skill files.
+
+---
+
+## 13. Prescriptive step-by-step instructions (railroading)
+
+Violates Thariq's skill tip: **"Don't railroad Claude in skills — give goals and constraints, not prescriptive step-by-step instructions."**
+
+**Bad**:
+
+```markdown
+## Phase 1 — Load the target
+
+1. Resolve the input path to a SKILL.md file.
+2. Use Read to load the full contents.
+3. Parse the frontmatter: find the opening --- and the closing ---.
+4. Count the body lines after the closing ---.
+
+## Phase 2 — Run the checks
+
+1. Check R01: name matches regex...
+2. Check R02: description length...
+```
+
+This railroads Claude into rigid sequential behavior, wastes tokens on instructions Claude already knows (how to read files, how to parse YAML), and prevents Claude from parallelizing independent checks.
+
+**Good**:
+
+```markdown
+## Goal
+
+Produce a severity-tagged findings report by running R01-R20 from rubric.md.
+
+## Constraints
+
+- Read-only: MUST NOT Write or Edit.
+- One finding per violation, grouped by severity.
+
+## Gotchas
+
+- Don't flag TODO inside fenced code blocks — only in prose.
+- Count the resolved description string, not the raw YAML lines.
+```
+
+Give the goal, the constraints that push Claude out of default behavior, and the gotchas where Claude actually fails. Let Claude figure out the "how".

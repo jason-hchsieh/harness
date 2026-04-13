@@ -21,11 +21,14 @@ REPLACE with a one-sentence purpose that mirrors the description.
 - REPLACE with concrete user phrasings that should trigger this skill.
 - REPLACE with a second phrasing if relevant.
 
-## How it works
+## Goal
 
-1. REPLACE with step 1 (imperative, testable).
-2. REPLACE with step 2.
-3. REPLACE with step 3.
+REPLACE with the outcome this skill produces — what does "done" look like?
+
+## Constraints
+
+- REPLACE with rules that push Claude out of its default behavior.
+- REPLACE with a second constraint, or delete if one is enough.
 
 ## Inputs
 
@@ -35,9 +38,9 @@ REPLACE with a one-sentence purpose that mirrors the description.
 
 - REPLACE with what the skill produces (files written, a report, an answer in the conversation).
 
-## Anti-patterns
+## Gotchas
 
-- REPLACE with one or two things this skill must NOT do.
+- REPLACE with failure patterns you've observed — things Claude gets wrong in this specific domain. This section grows over time as you iterate.
 
 ## References
 
