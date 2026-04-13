@@ -54,7 +54,9 @@ Load `references/mode-improve.md` and follow it. If no report given, run audit i
 - After `audit` with CRITICAL/HIGH findings: suggest `skill-toolkit improve <path> --report=<report>`.
 - After `improve`: always re-audit and report the residual.
 
-## Gotchas (cross-mode)
+## Anticipated failure modes (cross-mode)
+
+Not yet validated — update as real failures are discovered.
 
 - **Audit mode's read-only contract is prose, not tool-enforced.** `allowed-tools` includes `Write`/`Edit` because create/improve need them. In audit mode, you must self-enforce the constraint.
 - **Don't railroad generated skills.** When creating a skill in create mode, use goals+constraints in the body — not prescriptive step-by-step phases. See `references/anti-patterns.md`.
