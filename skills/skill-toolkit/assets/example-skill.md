@@ -7,23 +7,16 @@ disable-model-invocation: false
 
 # hello-world
 
-A minimal skill that serves as a correct, rubric-passing reference example. If you want to know what a small SKILL.md looks like when everything is right, read this.
+A minimal skill that serves as a correct, rubric-passing reference example.
 
-## Scope & non-goals
+## Goal
 
-**In scope**: demonstrating valid frontmatter, a short body, progressive disclosure (even though this example is too small to need it), and a read-only `allowed-tools` list.
+Show the user what a small, valid SKILL.md looks like when everything is right.
 
-**Out of scope**: doing anything useful. This skill exists as an example only.
+## Constraints
 
-## When to use this skill
-
-- When a user types "show me an example of a minimal skill".
-- When someone is learning the SKILL.md format and wants a concrete reference.
-
-## How it works
-
-1. Read this file (the user usually just wants to look at it).
-2. Print a greeting message summarizing the rules this skill satisfies.
+- Read-only — does not write or edit any files.
+- Does not claim to do real work. This skill exists as an example only.
 
 ## Rules this skill satisfies
 
@@ -36,8 +29,6 @@ A minimal skill that serves as a correct, rubric-passing reference example. If y
 - **R17**: no TODOs, no empty sections, no first-person narration, no vague verbs.
 - **R18**: description promises a read-only demonstration and the body honors that.
 
-## Anti-patterns this skill avoids
+## Anticipated failure modes
 
-- Does not claim to do real work.
-- Does not request `Write` or `Bash` access.
-- Does not set `disable-model-invocation: true` because there are no destructive side effects.
+None yet — this skill is too simple to have failure modes. This section exists to demonstrate the pattern.
