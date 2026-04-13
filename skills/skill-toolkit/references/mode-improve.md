@@ -1,71 +1,45 @@
 # Mode: improve
 
-Apply audit findings to a SKILL.md. Minimal-diff edits, severity-first, re-audit at the end.
+Apply audit findings to a SKILL.md. Minimal diffs, severity-first, re-audit when done.
 
-## Input contract
+## Goal
 
-- `$ARGUMENTS` after the mode token is one of:
-  - `<path>` — path to a SKILL.md or skill directory. No report provided — you will run the audit logic inline first, then apply findings.
-  - `<path> --report=<report-file>` — path to a SKILL.md plus a path to a saved audit report to consume.
-  - `<path> --report=<inline>` — the user may paste an audit report inline into the conversation instead of a file path; accept that too.
+Resolve CRITICAL and HIGH findings from an audit report. Leave MEDIUM/LOW for user decision. Re-audit after fixes to verify and catch regressions.
 
-## Phase 1 — Load findings
+## Constraints
 
-1. If the user gave `--report=<file>`, `Read` the file and parse its Findings section.
-2. If the user gave `--report=<inline>` or pasted the report into the conversation, parse it directly from the conversation.
-3. If no report was given, load `mode-audit.md` and run the full audit workflow against the target first. Treat the resulting report as the findings source.
+- **Minimal diffs only.** Use `Edit` (old_string/new_string), not `Write` (full rewrite). Your mandate is to resolve the findings — not to restyle the skill.
+- **LOW-confidence findings require confirmation.** Ask the user before editing anything rated LOW confidence.
+- **Don't create or delete files silently.** If a finding says a referenced file is missing (R16), ask the user: create a stub, or remove the reference?
+- **Cap at 3 re-audit iterations.** If findings persist after 3 rounds, report and stop.
 
-A parsed finding is a record of: `rule`, `severity`, `confidence`, `location`, `evidence`, `fix`.
+## Input
 
-## Phase 2 — Prioritize
+`$ARGUMENTS` after `improve` is:
+- `<path>` — SKILL.md or skill directory. No report → run audit inline first, then apply.
+- `<path> --report=<file>` — consume a saved audit report.
+- `<path> --report=<inline>` — user may paste the report into conversation.
 
-Sort findings by severity, then by confidence:
+A finding is: `rule`, `severity`, `confidence`, `location`, `evidence`, `fix`.
 
-1. CRITICAL (HIGH confidence first, then MEDIUM, then LOW)
-2. HIGH (HIGH → MEDIUM → LOW)
-3. MEDIUM (HIGH → MEDIUM → LOW)
-4. LOW (HIGH → MEDIUM → LOW)
+## How it works
 
-LOW-confidence findings are advisory — surface them but confirm with the user before editing.
+1. **Get findings** — from report file, inline paste, or run audit.
+2. **Sort by severity+confidence** — CRITICAL/HIGH first, then MEDIUM/LOW. Within same severity, HIGH confidence before LOW confidence.
+3. **Apply each fix** — minimal `Edit`. Re-read the file between edits (prior fixes shift content).
+4. **Re-audit** — run `rubric.md` checks against the updated file. Report what was fixed and what remains.
+5. **If CRITICAL/HIGH persist** — offer to iterate (up to 3 total rounds).
 
-## Phase 3 — Apply fixes
+## Handoff
 
-For each finding, in priority order:
+Report to user: what was fixed (grouped by rule id), what remains, `/reload-plugins` reminder.
 
-1. `Read` the target SKILL.md to refresh your view of the current state (another fix may have already changed nearby content).
-2. Decide the minimal edit that resolves the finding. Examples:
-   - **R01** (name doesn't match directory) → `Edit` the `name:` line.
-   - **R02** (description too long) → `Edit` the `description:` line to a tighter version that preserves the "Use when…" clause and the trigger words. Do not rewrite for style.
-   - **R03** (missing "Use when…") → `Edit` the description to start with "Use when…".
-   - **R09** (`Bash` in allowed-tools without justification) → add a one-line justification comment to the body under a "Tools" section, OR remove `Bash` from allowed-tools if it is unused — ask the user which.
-   - **R14** (body too long) → this is the hardest case. Move long sections into `skills/<name>/references/<topic>.md` and replace with a link. Ask the user before splitting more than one section per run.
-   - **R16** (missing supporting file) → ask the user whether to create a stub or remove the reference. Do not silently create files.
-   - **R17** (anti-patterns) → tight `Edit` on the offending line(s).
-3. Apply the edit with `Edit` (not `Write`). Prefer `old_string`/`new_string` pairs tight enough to be unambiguous — do not replace entire sections unless that is genuinely the minimal change.
-4. If the finding is ambiguous (LOW confidence or the "fix" field in the report is vague), **ask the user** what to do before editing. Do not guess on LOW-confidence findings.
+## Gotchas
 
-## Phase 4 — Re-audit
+Claude tends to fail on these:
 
-After applying all planned fixes:
-
-1. Re-run the audit logic from `mode-audit.md` against the updated SKILL.md.
-2. Compare the new findings list to the original. Some findings should be gone; some may have shifted line numbers.
-3. If any CRITICAL or HIGH findings remain, report them to the user and offer to iterate.
-4. If only MEDIUM/LOW remain, report them and ask whether to stop or keep going.
-
-## Phase 5 — Handoff
-
-Report to the user:
-
-1. What was fixed, grouped by rule id (e.g. "Fixed 2 R02 (description length), 1 R14 (body length by splitting `references/examples.md`)").
-2. What remains, if anything.
-3. A reminder to run `/reload-plugins` so the edited skill is picked up by Claude Code.
-4. If the skill now passes entirely, suggest committing.
-
-## Things you must not do in improve mode
-
-- Do not rewrite the skill for style. Your only mandate is to resolve the findings the audit report identified. Stylistic rewrites out of scope.
-- Do not delete supporting files referenced by the body unless the user explicitly says so.
-- Do not apply LOW-confidence findings without user confirmation.
-- Do not replace `Edit` with `Write` (a full-file rewrite) except as a last resort when the changes are larger than 30% of the file AND the user confirms.
-- Do not loop forever on re-audit. Cap at 3 re-audit iterations per invocation; if findings persist, report and stop.
+- **Over-editing.** You'll be tempted to clean up surrounding code while you're fixing a finding. Don't. Only touch what the finding identifies.
+- **R14 (body too long) is the hardest fix.** You can't just delete lines. Move long sections into `references/` files and replace with a link. Ask the user before splitting more than one section.
+- **R02 description rewrites lose trigger words.** When tightening a description, preserve the "Use when…" clause and the concrete nouns users would say. Tightening for length must not kill triggerability.
+- **Stale line numbers.** After applying one fix, the line numbers from the report are wrong. Always re-read the file before the next edit.
+- **Don't guess on ambiguous R09 fixes.** If `Bash` is in allowed-tools but the body doesn't use it, ask the user: remove Bash, or add a justification?

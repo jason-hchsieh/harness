@@ -27,13 +27,10 @@ The router itself does not invoke `Bash`. It is declared at the router level so 
 
 ## Always load first
 
-Before running any mode, **read the shared rubric** so the same validation rules apply everywhere:
+Before running any mode, read the shared rubric so the same validation rules apply everywhere:
 
-```
-Read: references/rubric.md
-```
-
-Also keep `references/frontmatter-schema.md` on hand for precise per-field rules — load it when audit or create needs the exact limits.
+- `references/rubric.md` — the 20 rules (always load)
+- `references/frontmatter-schema.md` — per-field spec (load when needed)
 
 ## Mode routing
 
@@ -41,23 +38,15 @@ Parse the first whitespace-separated token of `$ARGUMENTS` as the mode. If `$ARG
 
 ### `create [name]`
 
-1. Load `references/mode-create.md` and follow its phases.
-2. You have `Write` and `Edit` available. Default scaffold location is `.claude/skills/<name>/` in the current working directory.
-3. After writing files, remind the user to run `/reload-plugins` and optionally run `skill-toolkit audit` on the new skill as a sanity check.
+Load `references/mode-create.md` and follow it. Default scaffold: `.claude/skills/<name>/`.
 
 ### `audit <path>`
 
-1. Load `references/mode-audit.md` and follow its phases.
-2. **Read-only mode.** You MUST NOT invoke `Write` or `Edit` in this mode. The audit report is the only output. If the user asks for fixes, instruct them to run `skill-toolkit improve <path> --report=<this-report>` instead — do not apply fixes yourself during audit.
-3. `<path>` may be a SKILL.md file, a skill directory (containing SKILL.md), or a plugin root (recurse one level into `skills/`).
-4. Emit findings using `references/report-template.md`.
+Load `references/mode-audit.md` and follow it. **Read-only** — MUST NOT `Write` or `Edit`. `<path>` can be a SKILL.md, a skill directory, or a plugin root.
 
 ### `improve <path> [--report=<file>]`
 
-1. Load `references/mode-improve.md` and follow its phases.
-2. If `--report=<file>` is given, read that audit report and apply its findings. If not, run the audit logic inline first, then apply findings.
-3. Use `Edit` for minimal diffs. Re-audit after applying fixes and report any residual findings.
-4. Remind the user to run `/reload-plugins` when done.
+Load `references/mode-improve.md` and follow it. If no report given, run audit inline first.
 
 ## Handoff rules between modes
 
@@ -65,13 +54,8 @@ Parse the first whitespace-separated token of `$ARGUMENTS` as the mode. If `$ARG
 - After `audit` with CRITICAL/HIGH findings: suggest `skill-toolkit improve <path> --report=<report>`.
 - After `improve`: always re-audit and report the residual.
 
-## Anti-patterns to avoid (for any mode)
+## Gotchas (cross-mode)
 
-- Do not invent frontmatter fields beyond the 13 documented in `references/frontmatter-schema.md`.
-- Do not silently rewrite a user's skill body in `improve` mode — apply minimal diffs keyed to specific findings.
-- Do not emit audit findings without a rule id (`R01`..`R20`), evidence, and confidence level.
-- Do not claim `disable-model-invocation: true` is needed unless the skill has destructive side effects.
-
-## Why this skill exists (and why it is a skill, not a subagent)
-
-Skills auto-trigger from user intent via description matching; subagents only fire when a parent agent delegates. Because the user will often just say "help me make a skill for X" or "audit this SKILL.md", a skill is the right primitive — and it can still delegate to a subagent via `context: fork` inside a specific phase if the work is heavy and read-only.
+- **Audit mode's read-only contract is prose, not tool-enforced.** `allowed-tools` includes `Write`/`Edit` because create/improve need them. In audit mode, you must self-enforce the constraint.
+- **Don't railroad generated skills.** When creating a skill in create mode, use goals+constraints in the body — not prescriptive step-by-step phases. See `references/anti-patterns.md`.
+- **Only the 13 documented frontmatter fields exist.** Don't invent new ones.
