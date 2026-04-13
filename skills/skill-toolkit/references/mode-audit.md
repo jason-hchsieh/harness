@@ -6,65 +6,78 @@ Read-only rubric check against an existing SKILL.md. Emits a severity-tagged fin
 
 Produce a findings report for one or more SKILL.md files by running every applicable rule from `rubric.md`. The report follows `references/report-template.md`.
 
-## Constraints
-
-- **Read-only.** MUST NOT invoke `Write` or `Edit`. The findings report is conversation output only.
-- Every finding must include: `rule` (R01–R20), `severity`, `confidence`, `location` (file:line), `evidence`, `fix` suggestion.
-- One finding per violation — do not collapse multiple violations of the same rule.
-- If the user asks "fix this" mid-audit, redirect to `skill-toolkit improve <path>`. Do not mix audit and improve in one turn.
-- Output to conversation by default. If the user explicitly asks for a file, confirm before writing (you'd be breaking read-only).
-- Use `references/report-template.md` for the output structure.
-
 ## Input
 
 `$ARGUMENTS` after `audit` is a path — one of:
-- A `SKILL.md` file
-- A skill directory containing `SKILL.md`
+- A `SKILL.md` file (e.g. `.claude/skills/hello/SKILL.md`)
+- A skill directory containing `SKILL.md` (e.g. `.claude/skills/hello`)
 - A plugin root with `skills/` — audit each SKILL.md, one report section per skill plus cross-skill summary
 
 If path doesn't exist, ask the user. Don't proceed with a partial audit.
 
-## What to check
+## Specifications
 
-Run **R01–R20 from `rubric.md`**. The rubric defines what each rule checks, its confidence level, and its severity. You do not need additional instructions beyond what's in the rubric — apply each rule to the target and emit a Finding when violated.
+### Finding record format
 
-**Finding record format:**
+Every finding MUST contain these 6 fields — no exceptions, no shortcuts:
 
 ```
 ### [SEVERITY] Rnn short-rule-name
 
-- **File**: path:line
-- **Evidence**: verbatim snippet or measurement
+- **File**: <path>:<line>
+- **Evidence**: <verbatim snippet or measurement, e.g. "description is 1187 chars">
 - **Confidence**: HIGH | MEDIUM | LOW
-- **Fix**: one-line suggestion
+- **Fix**: <one-line actionable suggestion>
 ```
 
-Group findings by severity (CRITICAL → HIGH → MEDIUM → LOW), then by rule id within each group.
+- `severity`: one of CRITICAL, HIGH, MEDIUM, LOW — per `rubric.md`.
+- `confidence`: per `rubric.md`'s per-rule definition (HIGH = deterministic check, LOW = judgement call).
+- `location`: always `file:line` format. If the violation spans multiple lines, point to the first offending line.
+- `evidence`: a short verbatim snippet from the file or a measurement. Not a paraphrase. E.g. `"name: Hello-World"` (wrong case) or `"body is 623 lines"`.
 
-## Report header
+### Report structure
 
-Include at the top of every report:
-- Target path
-- UTC timestamp
-- Rubric version (`harness-toolkit v0.1.0`)
-- Summary counters: CRITICAL n | HIGH n | MEDIUM n | LOW n
-- Key scalars: body line count, description char count
+```
+# Skill Audit Report — <skill-name>
 
-For multi-skill audits (plugin root), add a cross-skill summary table per `report-template.md`.
+Target: <path>
+Date: <UTC ISO-8601>
+Rubric: harness-toolkit v0.1.0
 
-## Handoff
+## Summary
+- CRITICAL: <n> | HIGH: <n> | MEDIUM: <n> | LOW: <n>
+- Body length: <n> lines (budget 500)
+- Description length: <n> chars (hard 1024 / soft 250)
+- Frontmatter fields present: <list>
+- Frontmatter fields missing (recommended): <list>
 
-End with: "To apply fixes, run `skill-toolkit improve <path> --report=<this-report>`"
+## Findings
+[findings grouped by severity: CRITICAL → HIGH → MEDIUM → LOW]
+[within each group, sorted by rule id ascending]
 
-If zero CRITICAL/HIGH findings: congratulate and suggest `/reload-plugins`.
+## Next step
+To apply fixes: `skill-toolkit improve <path> --report=<this-report>`
+```
 
-## Gotchas
+See `references/report-template.md` for multi-skill reports and the empty-findings case.
 
-Claude tends to fail on these — pay extra attention:
+### Empty-findings case
 
-- **Skipping R16 (supporting file integrity)**: you must actually `Glob` every referenced path, not just assume it exists. This is the most commonly missed check.
+Still emit the full report header with all zeroes. An empty pass report is a valid audit artifact. Do not skip the report just because nothing failed.
+
+## Constraints
+
+- **Read-only.** MUST NOT invoke `Write` or `Edit`. Output to conversation only. If user asks for a file, confirm first (breaks read-only contract).
+- **One finding per violation.** Do not collapse multiple violations of the same rule. `improve` mode addresses each individually.
+- **No new rule ids.** If a check isn't covered by R01–R20, emit it as advisory under R18 or propose adding the rule to `rubric.md` separately.
+- **Don't mix audit and improve.** If the user says "fix this" mid-audit, redirect to `skill-toolkit improve <path>`.
+
+## Anticipated failure modes
+
+These are hypothesized failure patterns — not yet validated by real runs. Update this section as you discover actual failures.
+
+- **Skipping R16 (supporting file integrity)**: you must actually `Glob` every referenced path, not just assume it exists.
 - **Miscounting description length**: multi-line YAML descriptions fold whitespace. Count the final resolved string, not the raw YAML lines.
-- **False-positive R17 on code blocks**: don't flag `TODO` or `FIXME` inside fenced code blocks (` ``` `) — only flag them in prose.
+- **False-positive R17 on code blocks**: don't flag `TODO` or `FIXME` inside fenced code blocks — only flag them in prose.
 - **R01 directory derivation**: the directory to match is the immediate parent of the SKILL.md file, not the plugin root. `skills/foo/SKILL.md` → name must be `foo`.
-- **R18 is a judgement call**: don't flag it at HIGH confidence. It's LOW confidence by definition — emit as advisory.
-- **Empty findings are valid**: if nothing fails, still emit the full report header with zeroes. An empty pass report is an audit artifact.
+- **R18 confidence**: R18 is LOW confidence by definition. Emit as advisory, never as HIGH.
