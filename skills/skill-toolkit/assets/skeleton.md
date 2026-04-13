@@ -10,37 +10,26 @@ disable-model-invocation: false
 
 REPLACE with a one-sentence purpose that mirrors the description.
 
-## Scope & non-goals
-
-**In scope**: REPLACE.
-
-**Out of scope**: REPLACE. Point at sibling skills or primitives if something was cut.
-
-## When to use this skill
-
-- REPLACE with concrete user phrasings that should trigger this skill.
-- REPLACE with a second phrasing if relevant.
-
 ## Goal
 
 REPLACE with the outcome this skill produces — what does "done" look like?
+
+## Input
+
+- `$ARGUMENTS`: REPLACE or delete this section if the skill takes no args.
+
+## Specifications
+
+REPLACE with output format contracts — the exact structure of what this skill produces. Not steps, but specs. Delete this section if the skill's output is freeform conversation.
 
 ## Constraints
 
 - REPLACE with rules that push Claude out of its default behavior.
 - REPLACE with a second constraint, or delete if one is enough.
 
-## Inputs
+## Anticipated failure modes
 
-- `$ARGUMENTS`: REPLACE or delete this section if the skill takes no args.
-
-## Outputs
-
-- REPLACE with what the skill produces (files written, a report, an answer in the conversation).
-
-## Gotchas
-
-- REPLACE with failure patterns you've observed — things Claude gets wrong in this specific domain. This section grows over time as you iterate.
+REPLACE with failure patterns specific to this skill's domain. This section starts as hypotheses and grows with real observations over time. Mark unvalidated entries as such.
 
 ## References
 
