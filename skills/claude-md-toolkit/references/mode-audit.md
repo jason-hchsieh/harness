@@ -118,16 +118,20 @@ Still emit the full report header with all zeroes. An empty pass report is a val
 - **One finding per violation.** Do not collapse multiple R08 vague-phrase hits into a single finding — each instance gets its own record so `improve` can address them individually. Exception: R01 (file-level length) emits one finding per file.
 - **No new rule ids.** If a check isn't covered by R01–R22, emit as advisory under R07 (deletability) or propose adding a rule — don't invent R23.
 - **Don't mix audit and improve.** If the user says "fix this" mid-audit, finish the audit report first, then redirect to `claude-md-toolkit improve`.
-- **Don't audit SKILL.md or AGENTS.md directly.** If the target is a SKILL.md (has `name:` / `description:` frontmatter), stop and recommend `skill-toolkit`. If the target is an AGENTS.md, audit only R12/R16/R18 (the rules that apply) and note the limitation — the full rubric is CLAUDE.md-specific.
+- **Don't audit SKILL.md or AGENTS.md directly with the full rubric.** If the target is a SKILL.md (has `name:` / `description:` frontmatter), stop and recommend `skill-toolkit`. If the target is an AGENTS.md, audit only R12 (secrets), R16 (imports), and R18 (scope leakage — adapted: AGENTS.md is team-shared so same personal-content rules apply). **R20 is INVERTED for AGENTS.md**: AGENTS.md spec permits/expects frontmatter, so a missing frontmatter on AGENTS.md is not a violation. R17 also does not apply to AGENTS.md (it is the bridge target, not a bridge source). Emit a note in the report header that the full rubric is CLAUDE.md-specific.
 
 ## Rule application notes
 
 - **R01**: `Bash` `wc -l <path>` once per file. Apply the scope's row. Emit evidence as `"178 lines; project scope HIGH tier (201-300)"`.
+- **R02** (heading hierarchy): `Grep` `^#{1,6} ` to count headings at each level. Count `h1` first: if >1, emit MEDIUM citing each h1's line. Count `h4+`: if >0, emit MEDIUM citing each offending line. Also emit when `@AGENTS.md` import is present AND the importing file has any `h1` — the expanded AGENTS.md almost certainly contains its own h1, causing a post-expansion h1-collision.
+- **R08** (vague phrases): `Grep -n -i` each forbidden phrase (`clean code`, `properly`, `best practices`, `good code`, `well-written`, `quality code`, `handle errors gracefully`, `consider performance`, `think about`). Exclude matches inside fenced code blocks (track `` ``` `` state while scanning). Emit one finding per match with the phrase as evidence and a replacement suggestion.
 - **R12** (secrets): scan prose AND code blocks. A token in a code block is still a committed secret. Emit CRITICAL immediately; do not continue other rules until the user is warned.
+- **R13** (emphasis budget): `Grep -c` each of `IMPORTANT:`, `YOU MUST`, ` MUST `, ` NEVER `, ` ALWAYS ` (exact case, with word boundaries). Sum the counts. If total >5, emit MEDIUM with the count and each occurrence's `file:line`.
+- **R15** (advisory-vs-hook): heuristic `Grep -n -E -i` for patterns `(always|must|never) .*(run|commit|lint|format|block|reject|push|commit)`. For each match, emit MEDIUM advisory noting the rule is better expressed as a hook / permission; include a sample `settings.json` snippet in the `Fix:`. Do NOT read `.claude/settings.json` to cross-check — cross-file awareness is not required at this rubric version.
 - **R16** (imports): parse every `@path` occurrence. `Glob` each one. For relative paths, resolve relative to the containing file (not cwd). For `~/`, expand to `$HOME`. Track depth by recursively resolving imports up to 2 hops; emit HIGH if depth 3+ detected.
 - **R17** (AGENTS.md bridging): `Glob` for `AGENTS.md` in the same directory as the target. If present, `Grep` for `@AGENTS.md` in the target. If missing, emit HIGH finding with the exact import line to add as the fix.
 - **R18** (gitignore for local): if scope is `local`, `Read` `.gitignore` and check if `CLAUDE.local.md` is covered. Use literal match or common glob patterns (`CLAUDE.local.md`, `*.local.md`, `CLAUDE.*.md`).
-- **R20** (no frontmatter): check the first non-empty line. If it is `---`, the file has frontmatter — HIGH finding, evidence the first line.
+- **R20** (no frontmatter): check the first non-empty line. If it is `---`, the file has frontmatter — HIGH finding, evidence the first line. **Inverted for AGENTS.md targets** (see Constraints).
 - **R21** (command resolvability): skip if no recognizable config file is present (emit LOW advisory instead of HIGH).
 
 ## Anticipated failure modes

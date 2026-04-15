@@ -1,7 +1,5 @@
 @AGENTS.md
 
-# Claude Code specific
-
 This project uses AGENTS.md as the single source of truth for build commands, code style, and architecture. Everything below is Claude Code-specific behavior that doesn't belong in AGENTS.md because other agents don't have these primitives.
 
 ## Plan mode

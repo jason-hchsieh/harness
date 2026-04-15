@@ -1,6 +1,6 @@
 ---
 name: claude-md-toolkit
-description: Use when the user wants to CREATE, AUDIT, or IMPROVE a CLAUDE.md file (the per-project memory file read by Claude Code). Create scaffolds a new CLAUDE.md tuned to project / user / local / managed scope. Audit runs the R01-R22 rubric and emits severity-tagged findings. Improve applies fixes from an audit report. Mode is the first argument. Also handles the AGENTS.md bridging pattern. Do NOT use this for SKILL.md files — use skill-toolkit for those.
+description: Use when creating, auditing, or improving a CLAUDE.md file. Create scaffolds; audit emits R01-R22 findings; improve applies fixes. First arg is the mode. Also bridges to AGENTS.md when present. Do NOT use for SKILL.md — use skill-toolkit.
 argument-hint: "create [scope] | audit <path> | improve <path> [--report=<file>]"
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 disable-model-invocation: false
@@ -14,7 +14,7 @@ A thin router that dispatches to one of three modes for managing CLAUDE.md files
 
 **In scope**: creating new CLAUDE.md files (project / user / local / managed scope), auditing existing CLAUDE.md against a 22-rule rubric, applying audit findings as fixes, and bridging with `AGENTS.md` when present.
 
-**Out of scope**: authoring SKILL.md files (use `skill-toolkit`), authoring hooks or settings.json (different primitives), managing subagents. When the user's CLAUDE.md contains rules that belong in hooks / permissions, the audit WARNS and points at settings.json but does not edit it.
+**Out of scope**: authoring SKILL.md files (use `skill-toolkit`), authoring hooks or settings.json (different primitives), authoring subagents. When the user's CLAUDE.md contains rules that belong in hooks / permissions, the audit WARNS and points at settings.json but does not edit it.
 
 ## Tools (why `Bash` is in `allowed-tools`)
 
@@ -31,9 +31,12 @@ The router itself does not invoke `Bash`. It is declared at the router level so 
 Before running any mode, read the shared rubric so the same validation rules apply everywhere:
 
 - `references/rubric.md` — the 22 rules (always load)
-- `references/scope-matrix.md` — project / user / local / managed decision table (load when needed)
-- `references/agents-md-bridge.md` — how to treat a repo that already has AGENTS.md (load when AGENTS.md is detected)
-- `references/platform-profiles.md` — monorepo / ml / open-source / compliance adjustments (load when a non-default profile is selected)
+
+## Load on demand
+
+- `references/scope-matrix.md` — load when the target scope matters (any create invocation; any audit applying R01 budgets or R18 scope leakage checks).
+- `references/agents-md-bridge.md` — load when a sibling `AGENTS.md` is detected.
+- `references/platform-profiles.md` — load when a non-default profile is detected or requested.
 
 ## Mode routing
 
